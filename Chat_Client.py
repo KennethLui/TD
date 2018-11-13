@@ -10,9 +10,26 @@ clienteSocket = socket(AF_INET, SOCK_STREAM)
 #Estabelece conexão TCP com servidor
 clienteSocket.connect((serverName, serverPort))
 
-mensagem = input('frase de mensagem do cliente: ')
-clienteSocket.send(mensagem)
+#mensagem = [b'Liruleibe',b'Totoro']
 
-resposta_do_servidor=clienteSocket.recv(1024)
-print ('Resposta do servidor: ', resposta_do_servidor)
+#for linha in mensagem:
+#    clienteSocket.send(linha)
+
+#    resposta_do_servidor=clienteSocket.recv(1024)
+#    print ('Resposta do servidor: ', resposta_do_servidor.decode('utf-8'))
+
+sair = False
+
+while not sair:
+
+    resposta_do_servidor=clienteSocket.recv(1024)
+    
+    if "sair" in str(resposta_do_servidor):
+        sair = True
+        break
+
+    resposta_do_usuario =input(resposta_do_servidor.decode('utf-8'))
+    clienteSocket.send(resposta_do_usuario.encode('utf-8'))
+
+
 clienteSocket.close()
