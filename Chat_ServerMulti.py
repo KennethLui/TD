@@ -19,7 +19,7 @@ clientes={}
 
 #Vetor que salva os usuarios na sala, onde
 # o primeiro elemento é o nome da sala
-sala=[]
+#sala=[]
 
 #Vetor que salva objetos criados para cada sala existente
 lista_salas=[]
@@ -34,9 +34,10 @@ def entrar_sala():
 
 def criar_sala(conexao,endereco):
     msg_nome_sala = '\nFunção CRIAR SALA\n\nDigite o nome da sala:\nNome: '
-    msg_confirmacao = '\nSala criada!\n'
     msg_privada = '\nEsta sala deve ser privada?\n1 - Sim\n2 - Não\nOpção: '
     msg_erro = '\nOpção inválida\nEscolha uma das opções:\n1 - Sim\n2 - Não\nOpção: '
+    msg_senha = '\nDefina uma senha:\nSenha: '
+    msg_confirmacao = '!\nSala criada com sucesso!\n'
 
     conexao.send(msg_nome_sala.encode())
     nome_sala=conexao.recv(1024)
@@ -46,16 +47,19 @@ def criar_sala(conexao,endereco):
     conexao.send(msg_privada.encode())
 
     while loop == True:
-        resposta = conexao.recv(1024)
+        resposta = conexao.recv(1024).decode('utf-8')
         if resposta == '1':
             privada = True
             loop = False
-            sala_nova = sala(nome,endereco,privada)
+            conexao.send(msg_senha.encode())
+            senha=conexao.recv(1024)
+            sala_nova = sala(nome_sala,endereco,privada,senha)
+            conexao.send(msg_confirmacao.encode('utf-8'))
 
         elif resposta == '2':
             privada = False
             loop = False
-            sala_nova = sala(nome,endereco)
+            sala_nova = sala(nome_sala,endereco)
         else:
             conexao.send(msg_erro.encode())
     
@@ -66,24 +70,26 @@ def apagar_sala():
 
 def menu(conexao,endereco):
     msg = 'Menu:\n1 - Buscar informações sobre as salas\n2 - Entrar em e sair de uma sala existente\n3 - Criação de salas públicas e privadas\n4 - Apagar salas\n5 - Sair e desligar o servidor\n\nOpção: '
-    erro = 'Resposta inválida. Escolha uma das opções de 1 a 5\n\nOpção: '
-    sair = 'sair'
-    conexao.send(msg.encode())
+    erro = '!Resposta inválida. Escolha uma das opções de 1 a 5\n\n'
+    sair = 'quit'
     flag = False
+    print('\nPassou pelo menu\n')
     while not flag:
-        resposta = conexao.recv(1024)
+        print('\nEntrou no loop\n')
+        conexao.send(msg.encode())
+        resposta = conexao.recv(1024).decode('utf-8')
         if resposta == '1':
             buscar_sala()
-            flag = True
+
         elif resposta == '2':
             entrar_sala()
-            flag = True
+
         elif resposta == '3':
-            criar_sala()
-            flag = True
+            criar_sala(conexao,endereco)
+
         elif resposta == '4':
             apagar_sala()
-            flag = True
+
         elif resposta == '5':
             conexao.send(sair.encode())
             flag = True
@@ -122,14 +128,15 @@ def lidacliente(conexao, endereco):
     time.sleep(5)
     cadastro(conexao,endereco)
     print('Saiu do cadastro')
-    msg_sair = 'sair'
+    msg_sair = 'quit'
     menu(conexao,endereco)
+    print ('\nSaiu do Menu')
     while True:
         dado = conexao.recv(1024)
 
         if not dado: break
 
-        if "sair" in str(dado):
+        if "quit" in str(dado):
             conexao.send(msg_sair.encode())
             break
 

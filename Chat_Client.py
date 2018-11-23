@@ -24,12 +24,15 @@ while not sair:
 
     resposta_do_servidor=clienteSocket.recv(1024)
     
-    if "sair" in str(resposta_do_servidor):
+    if "quit" in str(resposta_do_servidor):
         sair = True
         break
 
-    resposta_do_usuario =input(resposta_do_servidor.decode('utf-8'))
-    clienteSocket.send(resposta_do_usuario.encode('utf-8'))
+    if resposta_do_servidor.decode('utf-8')[:1]=='!':
+        print(resposta_do_servidor[1:].decode('utf-8'))
+    else:
+        resposta_do_usuario =input(resposta_do_servidor.decode('utf-8'))
+        clienteSocket.send(resposta_do_usuario.encode('utf-8'))
 
 
 clienteSocket.close()
