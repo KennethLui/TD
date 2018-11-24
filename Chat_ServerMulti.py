@@ -24,13 +24,53 @@ clientes={}
 #Vetor que salva objetos criados para cada sala existente
 lista_salas=[]
 
-def buscar_sala():
-    for k in lista_salas:
-        for i in k:
-            print (i)
+mostra_salas={}
 
-def entrar_sala():
-    return
+dic = {}
+
+def buscar_sala(conexao):
+    msg = '\nSalas disponíveis:\n'
+    conexao.send(msg.encode())
+    for k in lista_salas:
+        #mostra_salas[k.get_nome()] = {k.get_num_usuarios,k.get_privado}
+        #dic = {k.get_nome():k.get_num_usuarios()}
+        dic.setdefault(k.get_nome(),[]).append(k.get_num_usuarios())
+        dic.setdefault(k.get_nome(),[]).append(k.get_privado())
+        #print ('\nKey:',k.get_nome(),'\tValor: ',dic.get(k.get_nome()))
+        mostra_salas.update(dic)
+        #v = mostra_salas
+        #print(v)
+
+    #print('\nMostrando tabela de usuarios')
+
+    for k in mostra_salas:
+        v = mostra_salas[k]
+        #print(k,'\t',v)
+        if v[1] == True:
+            tipo = 'Privado'
+        else:
+            tipo = 'Pública'
+        printado = ''
+        printado = '!' + str(k) + '\t' + 'Número de usuários: ' + str(v[0]) + '\tTipo de sala: ' + tipo + '\n'
+        conexao.send(printado.encode('utf-8'))
+
+def entrar_sala(conexao,endereco):
+    msg = '!\nSalas disponíveis:\n'
+    msg_op = '\nDigite a opção da sala desejada: '
+    cont=0
+    conexao.send(msg.encode())
+    for k in mostra_salas:
+        printado = '!Sala ' + str(cont) + ': ' + str(k)
+        conexao.send(printado.encode('utf-8'))
+        cont = cont+1
+
+    #Sala1.get_usuarios(clientes)
+    conexao.send(msg_op.encode())
+    op = conexao.recv(1024)
+
+    it = lista_salas[int(op)]
+#VERIFICAR SE TEM SENHA E PEDIR SE TIVE
+    it.add_user(endereco,clientes)
 
 def criar_sala(conexao,endereco):
     msg_nome_sala = '\nFunção CRIAR SALA\n\nDigite o nome da sala:\nNome: '
@@ -40,7 +80,7 @@ def criar_sala(conexao,endereco):
     msg_confirmacao = '!\nSala criada com sucesso!\n'
 
     conexao.send(msg_nome_sala.encode())
-    nome_sala=conexao.recv(1024)
+    nome_sala=conexao.recv(1024).decode('utf-8')
 
     loop = True
 
@@ -55,11 +95,14 @@ def criar_sala(conexao,endereco):
             senha=conexao.recv(1024)
             sala_nova = sala(nome_sala,endereco,privada,senha)
             conexao.send(msg_confirmacao.encode('utf-8'))
+            time.sleep(0.5)
 
         elif resposta == '2':
             privada = False
             loop = False
             sala_nova = sala(nome_sala,endereco)
+            conexao.send(msg_confirmacao.encode('utf-8'))
+            time.sleep(0.5)
         else:
             conexao.send(msg_erro.encode())
     
@@ -69,28 +112,33 @@ def apagar_sala():
     return
 
 def menu(conexao,endereco):
-    msg = 'Menu:\n1 - Buscar informações sobre as salas\n2 - Entrar em e sair de uma sala existente\n3 - Criação de salas públicas e privadas\n4 - Apagar salas\n5 - Sair e desligar o servidor\n\nOpção: '
+    msg = '\n\nMenu:\n1 - Buscar informações sobre as salas\n2 - Entrar em e sair de uma sala existente\n3 - Criação de salas públicas e privadas\n4 - Apagar salas\n5 - Sair e desligar o servidor\n\nOpção: '
     erro = '!Resposta inválida. Escolha uma das opções de 1 a 5\n\n'
     sair = 'quit'
     flag = False
     print('\nPassou pelo menu\n')
     while not flag:
-        print('\nEntrou no loop\n')
+        print('\nEntrou no loop do menu\nEsperando Escolha do usuario')
         conexao.send(msg.encode())
         resposta = conexao.recv(1024).decode('utf-8')
         if resposta == '1':
-            buscar_sala()
+            print('\nEntrou na Função Buscar Sala\n')
+            buscar_sala(conexao)
 
         elif resposta == '2':
-            entrar_sala()
+            print('\nEntrou na Função Entrar Sala\n')
+            entrar_sala(conexao,endereco)
 
         elif resposta == '3':
+            print('\nEntrou na Função Criar Sala\n')
             criar_sala(conexao,endereco)
 
         elif resposta == '4':
+            print('\nEntrou na Função Apagar Sala\n')
             apagar_sala()
 
         elif resposta == '5':
+            print('\nEntrou na Função Sair\n')
             conexao.send(sair.encode())
             flag = True
         else:
