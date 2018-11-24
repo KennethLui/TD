@@ -30,6 +30,7 @@ dic = {}
 
 def buscar_sala(conexao):
     msg = '\nSalas disponíveis:\n'
+    msg_espera = '\nApera em qualquer tecla e pressione enter para continuar\n'
     conexao.send(msg.encode())
     for k in lista_salas:
         #mostra_salas[k.get_nome()] = {k.get_num_usuarios,k.get_privado}
@@ -54,23 +55,44 @@ def buscar_sala(conexao):
         printado = '!' + str(k) + '\t' + 'Número de usuários: ' + str(v[0]) + '\tTipo de sala: ' + tipo + '\n'
         conexao.send(printado.encode('utf-8'))
 
+    conexao.send(msg_espera.encode())
+    espera = conexao.recv(1024)
+
 def entrar_sala(conexao,endereco):
     msg = '!\nSalas disponíveis:\n'
     msg_op = '\nDigite a opção da sala desejada: '
+    msg_senha = '\nDigite a senha da sala: '
+    msg_senha_incorreta = '\nSenha incorreta\n'
     cont=0
     conexao.send(msg.encode())
     for k in mostra_salas:
-        printado = '!Sala ' + str(cont) + ': ' + str(k)
+        printado = '!Sala ' + str(cont) + ': ' + str(k) + '\n'
         conexao.send(printado.encode('utf-8'))
         cont = cont+1
 
+    time.sleep(0.5)
     #Sala1.get_usuarios(clientes)
-    conexao.send(msg_op.encode())
-    op = conexao.recv(1024)
+    conexao.send(msg_op.encode('utf-8'))
+    time.sleep(2)
+    op = conexao.recv(1024).decode('utf-8')
 
     it = lista_salas[int(op)]
-#VERIFICAR SE TEM SENHA E PEDIR SE TIVE
-    it.add_user(endereco,clientes)
+    #VERIFICAR SE TEM SENHA E PEDIR SE TIVER
+
+    privado = it.get_privado()
+    senha = it.get_senha()
+
+    if privado == True:
+        #print(it.get_senha())
+        conexao.send(msg_senha.encode())
+        passw = conexao.recv(1024)
+        if passw == senha:
+            it.add_user(endereco,clientes)
+        else:
+            conexao.send(msg_senha_incorreta.encode())
+    else:
+        it.add_user(endereco,clientes)
+
 
 def criar_sala(conexao,endereco):
     msg_nome_sala = '\nFunção CRIAR SALA\n\nDigite o nome da sala:\nNome: '
