@@ -17,6 +17,9 @@ serverSocket.listen(10)
 #Dicionario que salva os enderecos e nomes dos clientes
 clientes={}
 
+#Diciomario que salva o socket para cada endereço
+socket_clientes = {}
+
 #Vetor que salva os usuarios na sala, onde
 # o primeiro elemento é o nome da sala
 #sala=[]
@@ -28,21 +31,24 @@ mostra_salas={}
 
 dic = {}
 
-def buscar_sala(conexao):
-    msg = '\nSalas disponíveis:\n'
-    msg_espera = '\nApera em qualquer tecla e pressione enter para continuar\n'
-    conexao.send(msg.encode())
+def atualiza_mostra_salas():
     for k in lista_salas:
-        #mostra_salas[k.get_nome()] = {k.get_num_usuarios,k.get_privado}
-        #dic = {k.get_nome():k.get_num_usuarios()}
+        dic = {}
         dic.setdefault(k.get_nome(),[]).append(k.get_num_usuarios())
         dic.setdefault(k.get_nome(),[]).append(k.get_privado())
-        #print ('\nKey:',k.get_nome(),'\tValor: ',dic.get(k.get_nome()))
         mostra_salas.update(dic)
-        #v = mostra_salas
-        #print(v)
 
-    #print('\nMostrando tabela de usuarios')
+def buscar_sala(conexao):
+    msg = '\nSalas disponíveis:\n'
+    #msg_espera = '\nApera em qualquer tecla e pressione enter para continuar\n'
+    conexao.send(msg.encode())
+    #for k in lista_salas:
+    #    dic = {}
+    #    dic.setdefault(k.get_nome(),[]).append(k.get_num_usuarios())
+    #    dic.setdefault(k.get_nome(),[]).append(k.get_privado())
+    #    mostra_salas.update(dic)
+
+    atualiza_mostra_salas()
 
     for k in mostra_salas:
         v = mostra_salas[k]
@@ -54,20 +60,25 @@ def buscar_sala(conexao):
         printado = ''
         printado = '!' + str(k) + '\t' + 'Número de usuários: ' + str(v[0]) + '\tTipo de sala: ' + tipo + '\n'
         conexao.send(printado.encode('utf-8'))
+        print ('\nstrV0 é: ',str(v[0]),' V[0] é: ',v[0])
 
-    conexao.send(msg_espera.encode())
-    espera = conexao.recv(1024)
+    #conexao.send(msg_espera.encode())
+    #espera = conexao.recv(1024)
 
 def entrar_sala(conexao,endereco):
     msg = '!\nSalas disponíveis:\n'
     msg_op = '\nDigite a opção da sala desejada: '
     msg_senha = '\nDigite a senha da sala: '
     msg_senha_incorreta = '\nSenha incorreta\n'
+    msg_boas_vindas = '!\nVocê agora está na sala: '
+    msg_digite = '\nDigite uma mensagem: '
     cont=0
     conexao.send(msg.encode())
+    time.sleep(0.5)
     for k in mostra_salas:
-        printado = '!Sala ' + str(cont) + ': ' + str(k) + '\n'
+        printado = '!Opção ' + str(cont) + ': ' + str(k) + '\n'
         conexao.send(printado.encode('utf-8'))
+        time.sleep(0.5)
         cont = cont+1
 
     time.sleep(0.5)
@@ -80,7 +91,8 @@ def entrar_sala(conexao,endereco):
     #VERIFICAR SE TEM SENHA E PEDIR SE TIVER
 
     privado = it.get_privado()
-    senha = it.get_senha()
+    if it.get_senha() != None:
+        senha = it.get_senha()
 
     if privado == True:
         #print(it.get_senha())
@@ -93,6 +105,26 @@ def entrar_sala(conexao,endereco):
     else:
         it.add_user(endereco,clientes)
 
+    it.get_usuarios(clientes)
+
+    conexao.send((msg_boas_vindas+it.get_nome()).encode())
+    time.sleep(0.5)
+
+    while True:
+        conexao.send(msg_digite.encode())
+        mensagem = conexao.recv(1024).decode('utf-8')
+        time.sleep(0.5)
+
+        if 'quit_sala' in mensagem:
+            break
+
+        usuarios = it.get_vet_usuarios()
+
+        for k in usuarios:
+            conexao_recv = socket_clientes.get(k)
+            conexao_recv.send((mensagem+'\n').encode())
+
+    it.del_user(endereco,clientes)
 
 def criar_sala(conexao,endereco):
     msg_nome_sala = '\nFunção CRIAR SALA\n\nDigite o nome da sala:\nNome: '
@@ -115,14 +147,14 @@ def criar_sala(conexao,endereco):
             loop = False
             conexao.send(msg_senha.encode())
             senha=conexao.recv(1024)
-            sala_nova = sala(nome_sala,endereco,privada,senha)
+            sala_nova = sala(nome_sala,privada,senha)
             conexao.send(msg_confirmacao.encode('utf-8'))
             time.sleep(0.5)
 
         elif resposta == '2':
             privada = False
             loop = False
-            sala_nova = sala(nome_sala,endereco)
+            sala_nova = sala(nome_sala)
             conexao.send(msg_confirmacao.encode('utf-8'))
             time.sleep(0.5)
         else:
@@ -130,17 +162,46 @@ def criar_sala(conexao,endereco):
     
     lista_salas.append(sala_nova)
 
-def apagar_sala():
-    return
+def apagar_sala(conexao):
+    msg_opcoes = '!\nSalas existentes:'
+    msg_op = '\nDigite a opção da sala que deseja apagar: '
+    conexao.send(msg_opcoes.encode())
+    time.sleep(0.5)
+
+    atualiza_mostra_salas()
+
+    for k in mostra_salas:
+        v = mostra_salas[k]
+        printado = ''
+        printado = '!Opção ' + str(cont) + str(k) + '\t' + 'Número de usuários: ' + str(v[0]) + '\n'
+        conexao.send(printado.encode('utf-8'))
+        time.sleep(0.5)
+        cont = cont+1
+
+    time.sleep(0.5)
+
+    conexao.send(msg_op.encode('utf-8'))
+    time.sleep(2)
+    op = conexao.recv(1024).decode('utf-8')
+
+    it = lista_salas[int(op)]
+
+    if it.get_num_usuarios == 0:
+
 
 def menu(conexao,endereco):
+    time.sleep(1)
     msg = '\n\nMenu:\n1 - Buscar informações sobre as salas\n2 - Entrar em e sair de uma sala existente\n3 - Criação de salas públicas e privadas\n4 - Apagar salas\n5 - Sair e desligar o servidor\n\nOpção: '
+    msg_espera = '\nApera em qualquer tecla e pressione enter para continuar\n'
     erro = '!Resposta inválida. Escolha uma das opções de 1 a 5\n\n'
     sair = 'quit'
     flag = False
     print('\nPassou pelo menu\n')
     while not flag:
         print('\nEntrou no loop do menu\nEsperando Escolha do usuario')
+        conexao.send(msg_espera.encode())
+        espera = conexao.recv(1024)
+        time.sleep(0.5)
         conexao.send(msg.encode())
         resposta = conexao.recv(1024).decode('utf-8')
         if resposta == '1':
@@ -174,22 +235,39 @@ def cadastro(conexao,endereco):
     while not cadastrado:
         msg1 = 'Já possui cadastro?\n1 - Sim\n2 - Não\n\nResposta: '
         msg2 = '\nDigite o apelido desejado\nApelido: '
-        msg3 = '\nCadastro efetuado\n'
+        msg3 = '!\nCadastro efetuado\n'
         msg4 = '\nNoma já cadastrado\n'
-        msg5 = '\nRealizar cadastro\n'
+        msg5 = '!\nRealizar cadastro\n'
+        msg6 = '\nQual o seu apelido: '
+        msg7 = '!\nNome não encontrado\n'
+        
         conexao.send(msg1.encode())
-
         resposta = conexao.recv(1024).decode('utf-8')
         print('\nResposta recebida do usuário: ',resposta)
         if resposta=='1':
-            cadastrado = True
+            conexao.send(msg6.encode())
+            resposta = (conexao.recv(1024)).decode('utf-8')
+            resposta = resposta.upper()
+            for subst,nome in clientes.values():
+                if nome == resposta:
+                    clientes.pop(subst)
+                    clientes.update({endereco:resposta})
+                    cadastrado = True
+                else:
+                    conexao.send(msg7.encode())
+                    time.sleep(0.5)
         elif resposta=='2':
             print('Resposta de cadastro ainda não efetuado')
             cadastrado = True
             conexao.send(msg5.encode())
+            time.sleep(1)
             conexao.send(msg2.encode())
-            resposta = conexao.recv(1024)
-            clientes.update({endereco:resposta.decode('utf-8')})
+            resposta = conexao.recv(1024).decode('utf-8')
+            resposta = resposta.upper()
+            #Salva o endereço e apelido
+            clientes.update({endereco:resposta})
+            #Salva o endereço e o socket
+            socket_clientes.update({endereco:conexao})
             conexao.send(msg3.encode())
         else:
             print('\nOpção inválida')

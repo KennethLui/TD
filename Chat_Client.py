@@ -29,10 +29,10 @@ while not sair:
         break
 
     if resposta_do_servidor.decode('utf-8')[:1]=='!':
-        print('\nSem resposta\n')
+        #print('\nSem resposta\n')
         print(resposta_do_servidor[1:].decode('utf-8'))
     else:
-        print('\nDigite resoista')
+        #print('\nDigite resoista')
         resposta_do_usuario =input(resposta_do_servidor.decode('utf-8'))
         clienteSocket.send(resposta_do_usuario.encode('utf-8'))
 
