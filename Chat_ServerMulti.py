@@ -32,6 +32,7 @@ mostra_salas={}
 dic = {}
 
 def atualiza_mostra_salas():
+    mostra_salas.clear()
     for k in lista_salas:
         dic = {}
         dic.setdefault(k.get_nome(),[]).append(k.get_num_usuarios())
@@ -169,7 +170,7 @@ def criar_sala(conexao,endereco):
     lista_salas.append(sala_nova)
 
 def apagar_sala(conexao):
-    msg_opcoes = '!\nSalas existentes:'
+    msg_opcoes = '!\nSalas existentes:\n'
     msg_op = '\nDigite a opção da sala que deseja apagar(O número de usuários precisa ser 0): '
     msg_erro_num = '!\nO número de usuários não é 0\n'
     time.sleep(0.5)
@@ -182,7 +183,7 @@ def apagar_sala(conexao):
         for k in mostra_salas:
             v = mostra_salas[k]
             printado = ''
-            printado = '!Opção ' + str(cont) + str(k) + '\t' + 'Número de usuários: ' + str(v[0]) + '\n'
+            printado = '!Opção ' + str(cont) + ' :' + str(k) + '\t' + 'Número de usuários: ' + str(v[0]) + '\n'
             conexao.send(printado.encode('utf-8'))
             time.sleep(0.5)
             cont = cont+1
@@ -198,7 +199,16 @@ def apagar_sala(conexao):
         if it.get_num_usuarios == 0:
             conexao.send(msg_erro_num.encode())
         else:
+            print ('\nSala ',it.get_nome(),' apagada')
+            msg_apagar = '!\nSala ' + it.get_nome() + ' apagada\n'
+            conexao.send(msg_apagar.encode())
+            time.sleep(0.5)
             lista_salas.remove(it)
+            atualiza_mostra_salas()
+
+            for p in lista_salas:
+                print ('\n',p.get_nome())
+
             break
 
 def menu(conexao,endereco):
