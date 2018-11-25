@@ -69,12 +69,16 @@ def entrar_sala(conexao,endereco):
     msg = '!\nSalas disponíveis:\n'
     msg_op = '\nDigite a opção da sala desejada: '
     msg_senha = '\nDigite a senha da sala: '
-    msg_senha_incorreta = '\nSenha incorreta\n'
+    msg_senha_incorreta = '!\nSenha incorreta\n'
     msg_boas_vindas = '!\nVocê agora está na sala: '
-    msg_digite = '\nDigite uma mensagem: '
+    msg_digite = '\nDigite uma mensagem(para sair digite "sair"): '
+    msg_despedida = '!\nVocê saiu da sala\n'
     cont=0
     conexao.send(msg.encode())
     time.sleep(0.5)
+
+    atualiza_mostra_salas()
+
     for k in mostra_salas:
         printado = '!Opção ' + str(cont) + ': ' + str(k) + '\n'
         conexao.send(printado.encode('utf-8'))
@@ -115,7 +119,7 @@ def entrar_sala(conexao,endereco):
         mensagem = conexao.recv(1024).decode('utf-8')
         time.sleep(0.5)
 
-        if 'quit_sala' in mensagem:
+        if mensagem == 'sair':
             break
 
         usuarios = it.get_vet_usuarios()
@@ -124,6 +128,8 @@ def entrar_sala(conexao,endereco):
             conexao_recv = socket_clientes.get(k)
             conexao_recv.send((mensagem+'\n').encode())
 
+    conexao.send(msg_despedida.encode())
+    time.sleep(0.5)
     it.del_user(endereco,clientes)
 
 def criar_sala(conexao,endereco):
@@ -164,35 +170,41 @@ def criar_sala(conexao,endereco):
 
 def apagar_sala(conexao):
     msg_opcoes = '!\nSalas existentes:'
-    msg_op = '\nDigite a opção da sala que deseja apagar: '
-    conexao.send(msg_opcoes.encode())
+    msg_op = '\nDigite a opção da sala que deseja apagar(O número de usuários precisa ser 0): '
+    msg_erro_num = '!\nO número de usuários não é 0\n'
     time.sleep(0.5)
 
     atualiza_mostra_salas()
 
-    for k in mostra_salas:
-        v = mostra_salas[k]
-        printado = ''
-        printado = '!Opção ' + str(cont) + str(k) + '\t' + 'Número de usuários: ' + str(v[0]) + '\n'
-        conexao.send(printado.encode('utf-8'))
+    while True:
+        conexao.send(msg_opcoes.encode())
+        cont = 0
+        for k in mostra_salas:
+            v = mostra_salas[k]
+            printado = ''
+            printado = '!Opção ' + str(cont) + str(k) + '\t' + 'Número de usuários: ' + str(v[0]) + '\n'
+            conexao.send(printado.encode('utf-8'))
+            time.sleep(0.5)
+            cont = cont+1
+
         time.sleep(0.5)
-        cont = cont+1
 
-    time.sleep(0.5)
+        conexao.send(msg_op.encode('utf-8'))
+        time.sleep(0.5)
+        op = conexao.recv(1024).decode('utf-8')
 
-    conexao.send(msg_op.encode('utf-8'))
-    time.sleep(2)
-    op = conexao.recv(1024).decode('utf-8')
+        it = lista_salas[int(op)]
 
-    it = lista_salas[int(op)]
-
-    if it.get_num_usuarios == 0:
-
+        if it.get_num_usuarios == 0:
+            conexao.send(msg_erro_num.encode())
+        else:
+            lista_salas.remove(it)
+            break
 
 def menu(conexao,endereco):
     time.sleep(1)
     msg = '\n\nMenu:\n1 - Buscar informações sobre as salas\n2 - Entrar em e sair de uma sala existente\n3 - Criação de salas públicas e privadas\n4 - Apagar salas\n5 - Sair e desligar o servidor\n\nOpção: '
-    msg_espera = '\nApera em qualquer tecla e pressione enter para continuar\n'
+    msg_espera = '\nPressione qualquer tecla e em seguida pressione enter para continuar\n'
     erro = '!Resposta inválida. Escolha uma das opções de 1 a 5\n\n'
     sair = 'quit'
     flag = False
@@ -218,7 +230,7 @@ def menu(conexao,endereco):
 
         elif resposta == '4':
             print('\nEntrou na Função Apagar Sala\n')
-            apagar_sala()
+            apagar_sala(conexao)
 
         elif resposta == '5':
             print('\nEntrou na Função Sair\n')
