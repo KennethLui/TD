@@ -114,20 +114,44 @@ def entrar_sala(conexao,endereco):
 
     conexao.send((msg_boas_vindas+it.get_nome()).encode())
     time.sleep(0.5)
-
+    msg_tipo = '\nO que deseja enviar?\n1 - Arquivo\n2 - Mensagem\nOpção: '
+    msg_filename = '\nDigite o nome do arquivo, incluindo a extenção: '
+    msg_SENDFILE = '#SEND_FILE#'
+    msg_RECVFILE = '#RECV_FILE#'
     while True:
-        conexao.send(msg_digite.encode())
-        mensagem = conexao.recv(1024).decode('utf-8')
+        conexao.send(msg_tipo.encode())
         time.sleep(0.5)
+        resposta = conexao.recv(1024).decode('utf-8')
 
-        if mensagem == 'sair':
-            break
+        if resposta == '1':
+            conexao.send(msg_SENDFILE.encode())
+            filename = conexao.recv(1024).decode()
+            tamanho = conexao.recv(1024).decode()
+            print(filename,'  ',tamanho)
+            f = open('novo_'+filename,'wb')
+            dados = conexao.recv(1024)
+            total_recebido = len(dados)
+            f.write(dados)
+            while total_recebido < int(tamanho):
+                print('\nDADO RECEBIDO')
+                dados = conexao.recv(1024)
+                total_recebido += len(dados)
+                f.write(dados)
+            print('\nDownload completo\nComeçando o envio...\n')
 
-        usuarios = it.get_vet_usuarios()
+        else:
+            conexao.send(msg_digite.encode())
+            mensagem = conexao.recv(1024).decode('utf-8')
+            time.sleep(0.5)
 
-        for k in usuarios:
-            conexao_recv = socket_clientes.get(k)
-            conexao_recv.send((mensagem+'\n').encode())
+            if mensagem == 'sair':
+                break
+
+            usuarios = it.get_vet_usuarios()
+
+            for k in usuarios:
+                broadcast_msg = socket_clientes.get(k)
+                broadcast_msg.send((mensagem+'\n').encode())
 
     conexao.send(msg_despedida.encode())
     time.sleep(0.5)
